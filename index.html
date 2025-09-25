@@ -1263,55 +1263,28 @@
                     // إضافة قيمة التدوير
                     const rotationValue = document.createElement('span');
                     rotationValue.className = 'rotation-value';
-                    rotationValue.textContent = '0°';
                     rotationCircle.appendChild(rotationValue);
                     
-                    // إضافة حدث التدوير
-                    let startAngle = 0;
-                    let currentRotation = 0;
-                    
-                    rotationCircle.addEventListener('mousedown', startRotation);
-                    
-                    function startRotation(e) {
-                        e.preventDefault();
-                        const rect = rotationCircle.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-                        
-                        document.addEventListener('mousemove', rotate);
-                        document.addEventListener('mouseup', stopRotation);
+                    // تهيئة زاوية تدوير الصورة
+                    if (!uploadedImageFiles[index].rotation) {
+                        uploadedImageFiles[index].rotation = 0;
                     }
                     
-                    function rotate(e) {
-                        const rect = rotationCircle.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-                        const rotation = angle - startAngle;
-                        
-                        currentRotation = (currentRotation + rotation) % 360;
-                        if (currentRotation < 0) currentRotation += 360;
-                        
-                        // تحديث زاوية التدوير
-                        if (!uploadedImageFiles[index].rotation) {
-                            uploadedImageFiles[index].rotation = 0;
-                        }
-                        uploadedImageFiles[index].rotation = Math.round(currentRotation);
+                    // إضافة حدث النقر للتدوير
+                    rotationCircle.addEventListener('click', function() {
+                        // زيادة زاوية التدوير بمقدار 90 درجة مع كل نقرة
+                        uploadedImageFiles[index].rotation = (uploadedImageFiles[index].rotation + 90) % 360;
                         
                         // تحديث عرض قيمة التدوير
-                        rotationValue.textContent = `${Math.round(currentRotation)}°`;
+                        rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
                         
                         // تحديث عرض الصورة
-                        img.style.transform = `rotate(${currentRotation}deg)`;
-                        
-                        startAngle = angle;
-                    }
+                        img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
+                    });
                     
-                    function stopRotation() {
-                        document.removeEventListener('mousemove', rotate);
-                        document.removeEventListener('mouseup', stopRotation);
-                    }
+                    // تطبيق التدوير الحالي على الصورة
+                    img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
+                    rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
                     
                     rotationControl.appendChild(rotationCircle);
                     
@@ -1320,14 +1293,6 @@
                     imageItem.appendChild(imageName);
                     imageItem.appendChild(rotationControl);
                     selectedImagesGrid.appendChild(imageItem);
-                    
-                    // تهيئة زاوية تدوير الصورة
-                    if (!uploadedImageFiles[index].rotation) {
-                        uploadedImageFiles[index].rotation = 0;
-                    } else {
-                        img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
-                        rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
-                    }
                 });
             } else {
                 selectedImages.classList.add('hidden');
@@ -1600,7 +1565,7 @@
                     const pageWidth = doc.internal.pageSize.getWidth();
                     const pageHeight = doc.internal.pageSize.getHeight();
                     
-                    // إنشاء canvas لتدوير الصورة إذا لزم الأمر
+                    // إنشاء canvas لتدوير الصورة
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
@@ -1613,19 +1578,23 @@
                         canvas.height = img.height;
                     }
                     
-                    // تدوير الصورة على canvas
+                    // مسح canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // حفظ حالة canvas
+                    ctx.save();
+                    
+                    // نقل مركز التدوير إلى منتصف canvas
                     ctx.translate(canvas.width / 2, canvas.height / 2);
+                    
+                    // تطبيق التدوير
                     ctx.rotate((rotation * Math.PI) / 180);
+                    
+                    // رسم الصورة مع مراعاة التدوير
                     ctx.drawImage(img, -img.width / 2, -img.height / 2);
                     
-                    // تحويل canvas إلى صورة
-                    const rotatedImg = new Image();
-                    rotatedImg.src = canvas.toDataURL('image/png');
-                    
-                    await new Promise((resolve, reject) => {
-                        rotatedImg.onload = resolve;
-                        rotatedImg.onerror = reject;
-                    });
+                    // استعادة حالة canvas
+                    ctx.restore();
                     
                     // حساب أبعاد الصورة المدورة لتناسب الصفحة
                     let imgWidth = pageWidth - 20; // هامش 10 ملم من كل جانب
@@ -1642,7 +1611,7 @@
                     const y = (pageHeight - imgHeight) / 2;
                     
                     // إضافة الصورة إلى PDF
-                    doc.addImage(rotatedImg, 'PNG', x, y, imgWidth, imgHeight);
+                    doc.addImage(canvas, 'PNG', x, y, imgWidth, imgHeight);
                     
                     // تحرير الذاكرة
                     URL.revokeObjectURL(objectUrl);
