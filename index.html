@@ -421,6 +421,14 @@
             text-overflow: ellipsis;
         }
         
+        .image-rotation {
+            padding: 5px;
+            text-align: center;
+            background-color: #f0f0f0;
+            font-size: 0.8rem;
+            color: #555;
+        }
+        
         .progress-container {
             margin: 20px 0;
             background: #f0f0f0;
@@ -615,6 +623,50 @@
             text-overflow: ellipsis;
         }
         
+        .rotation-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        
+        .rotation-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+        
+        .rotation-circle:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+        
+        .rotation-circle i {
+            font-size: 1.2rem;
+        }
+        
+        .rotation-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+        
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -735,7 +787,9 @@
         }
         
         body.dark-mode .image-name,
-        body.dark-mode .selected-file-name {
+        body.dark-mode .selected-file-name,
+        body.dark-mode .image-rotation,
+        body.dark-mode .rotation-control {
             background: rgba(60, 60, 60, 0.9);
             color: #ccc;
         }
@@ -830,14 +884,6 @@
                         <option value="webp">WebP - حديث</option>
                     </select>
                 </div>
-                
-                <div class="option-group">
-                    <label for="imageQuality"><i class="fas fa-sliders-h"></i> جودة الصورة:</label>
-                    <div class="quality-container">
-                        <input type="range" id="imageQuality" min="0" max="100" value="90">
-                        <span class="quality-value" id="qualityValue">90%</span>
-                    </div>
-                </div>
             </div>
             
             <div class="progress-container hidden" id="pdfProgress">
@@ -878,26 +924,6 @@
                 <div class="selected-files-grid" id="selectedImagesGrid"></div>
             </div>
             
-            <div class="options">
-                <div class="option-group">
-                    <label for="pdfOrientation"><i class="fas fa-arrows-alt-h"></i> اتجاه الصفحة:</label>
-                    <select id="pdfOrientation">
-                        <option value="portrait">عمودي (رأسي)</option>
-                        <option value="landscape">أفقي (عرضي)</option>
-                    </select>
-                </div>
-                
-                <div class="option-group">
-                    <label for="pdfSize"><i class="fas fa-expand"></i> حجم الصفحة:</label>
-                    <select id="pdfSize">
-                        <option value="a4">A4 (قياسي - 210×297 ملم)</option>
-                        <option value="letter">Letter (أمريكي - 216×279 ملم)</option>
-                        <option value="legal">Legal (قانوني - 216×356 ملم)</option>
-                    </select>
-                    <p class="size-info">حجم الورق المستخدم في ملف PDF الناتج</p>
-                </div>
-            </div>
-            
             <div class="progress-container hidden" id="imageProgress">
                 <div class="progress-bar" id="imageProgressBar">0%</div>
             </div>
@@ -911,7 +937,7 @@
             <h2><i class="fas fa-download"></i> نتائج التحويل</h2>
             <div id="resultsContent"></div>
         </div>
-        
+  
         <footer>
             <p>© XAMX2025 — جميع الحقوق محفوظة.</p>
             <p>خدمة مجانية - لا يتطلب تسجيل</p>
@@ -960,10 +986,6 @@
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
         const imageFormatSelect = document.getElementById('imageFormat');
-        const imageQualityInput = document.getElementById('imageQuality');
-        const qualityValueSpan = document.getElementById('qualityValue');
-        const pdfOrientationSelect = document.getElementById('pdfOrientation');
-        const pdfSizeSelect = document.getElementById('pdfSize');
         const tabs = document.querySelectorAll('.tab');
         const pdfToImageSection = document.getElementById('pdf-to-image');
         const imageToPdfSection = document.getElementById('image-to-pdf');
@@ -1228,10 +1250,84 @@
                     imageName.className = 'selected-file-name';
                     imageName.textContent = file.name;
                     
+                    // إضافة دائرة التدوير
+                    const rotationControl = document.createElement('div');
+                    rotationControl.className = 'rotation-control';
+                    
+                    const rotationCircle = document.createElement('div');
+                    rotationCircle.className = 'rotation-circle';
+                    rotationCircle.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                    rotationCircle.title = 'تدوير الصورة';
+                    rotationCircle.dataset.index = index;
+                    
+                    // إضافة قيمة التدوير
+                    const rotationValue = document.createElement('span');
+                    rotationValue.className = 'rotation-value';
+                    rotationValue.textContent = '0°';
+                    rotationCircle.appendChild(rotationValue);
+                    
+                    // إضافة حدث التدوير
+                    let startAngle = 0;
+                    let currentRotation = 0;
+                    
+                    rotationCircle.addEventListener('mousedown', startRotation);
+                    
+                    function startRotation(e) {
+                        e.preventDefault();
+                        const rect = rotationCircle.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                        
+                        document.addEventListener('mousemove', rotate);
+                        document.addEventListener('mouseup', stopRotation);
+                    }
+                    
+                    function rotate(e) {
+                        const rect = rotationCircle.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                        const rotation = angle - startAngle;
+                        
+                        currentRotation = (currentRotation + rotation) % 360;
+                        if (currentRotation < 0) currentRotation += 360;
+                        
+                        // تحديث زاوية التدوير
+                        if (!uploadedImageFiles[index].rotation) {
+                            uploadedImageFiles[index].rotation = 0;
+                        }
+                        uploadedImageFiles[index].rotation = Math.round(currentRotation);
+                        
+                        // تحديث عرض قيمة التدوير
+                        rotationValue.textContent = `${Math.round(currentRotation)}°`;
+                        
+                        // تحديث عرض الصورة
+                        img.style.transform = `rotate(${currentRotation}deg)`;
+                        
+                        startAngle = angle;
+                    }
+                    
+                    function stopRotation() {
+                        document.removeEventListener('mousemove', rotate);
+                        document.removeEventListener('mouseup', stopRotation);
+                    }
+                    
+                    rotationControl.appendChild(rotationCircle);
+                    
                     imageItem.appendChild(img);
                     imageItem.appendChild(removeBtn);
                     imageItem.appendChild(imageName);
+                    imageItem.appendChild(rotationControl);
                     selectedImagesGrid.appendChild(imageItem);
+                    
+                    // تهيئة زاوية تدوير الصورة
+                    if (!uploadedImageFiles[index].rotation) {
+                        uploadedImageFiles[index].rotation = 0;
+                    } else {
+                        img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
+                        rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
+                    }
                 });
             } else {
                 selectedImages.classList.add('hidden');
@@ -1309,11 +1405,6 @@
             }
         }
         
-        // تحديث قيمة جودة الصورة المعروضة
-        imageQualityInput.addEventListener('input', () => {
-            qualityValueSpan.textContent = `${imageQualityInput.value}%`;
-        });
-        
         // تحويل PDF إلى صور
         convertPdfToImagesBtn.addEventListener('click', async () => {
             if (!uploadedPdfFiles || uploadedPdfFiles.length === 0) {
@@ -1377,10 +1468,9 @@
                         pageContainer.appendChild(canvasWrapper);
                         
                         const format = imageFormatSelect.value;
-                        const quality = imageQualityInput.value / 100;
                         
                         const downloadLink = document.createElement('a');
-                        downloadLink.href = canvas.toDataURL(`image/${format}`, quality);
+                        downloadLink.href = canvas.toDataURL(`image/${format}`);
                         downloadLink.download = `${uploadedPdfFile.name}_صفحة_${i}.${format}`;
                         downloadLink.className = 'download-link';
                         downloadLink.innerHTML = `<i class="fas fa-download"></i> تحميل الصفحة ${i}`;
@@ -1433,11 +1523,6 @@
                 }
                 
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({
-                    orientation: pdfOrientationSelect.value,
-                    unit: 'mm',
-                    format: pdfSizeSelect.value
-                });
                 
                 resultsContent.innerHTML = `
                     <div class="results-header">
@@ -1468,8 +1553,14 @@
                     imageName.className = 'image-name';
                     imageName.textContent = file.name;
                     
+                    // عرض زاوية تدوير الصورة
+                    const imageRotation = document.createElement('div');
+                    imageRotation.className = 'image-rotation';
+                    imageRotation.textContent = `التدوير: ${file.rotation || 0}°`;
+                    
                     imageContainer.appendChild(imgPreview);
                     imageContainer.appendChild(imageName);
+                    imageContainer.appendChild(imageRotation);
                     imagePreviewsContainer.appendChild(imageContainer);
                     
                     // تحرير الذاكرة
@@ -1479,9 +1570,22 @@
                 let totalImages = sortedFiles.length;
                 let processedImages = 0;
                 
+                // إنشاء مستند PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
                 // معالجة الصور وإضافتها إلى PDF
                 for (let i = 0; i < sortedFiles.length; i++) {
                     const file = sortedFiles[i];
+                    const rotation = file.rotation || 0; // استخدام زاوية التدوير المحددة للصورة
+                    
+                    // إضافة صفحة جديدة للصور بعد الأولى
+                    if (i > 0) {
+                        doc.addPage();
+                    }
                     
                     const img = new Image();
                     const objectUrl = URL.createObjectURL(file);
@@ -1492,22 +1596,45 @@
                         img.src = objectUrl;
                     });
                     
-                    // إضافة صفحة جديدة للصور بعد الأولى
-                    if (i > 0) {
-                        doc.addPage();
-                    }
-                    
                     // حساب أبعاد الصورة لتناسب الصفحة
                     const pageWidth = doc.internal.pageSize.getWidth();
                     const pageHeight = doc.internal.pageSize.getHeight();
                     
+                    // إنشاء canvas لتدوير الصورة إذا لزم الأمر
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // ضبط أبعاد canvas بناءً على زاوية التدوير
+                    if (rotation === 90 || rotation === 270) {
+                        canvas.width = img.height;
+                        canvas.height = img.width;
+                    } else {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+                    
+                    // تدوير الصورة على canvas
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate((rotation * Math.PI) / 180);
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    
+                    // تحويل canvas إلى صورة
+                    const rotatedImg = new Image();
+                    rotatedImg.src = canvas.toDataURL('image/png');
+                    
+                    await new Promise((resolve, reject) => {
+                        rotatedImg.onload = resolve;
+                        rotatedImg.onerror = reject;
+                    });
+                    
+                    // حساب أبعاد الصورة المدورة لتناسب الصفحة
                     let imgWidth = pageWidth - 20; // هامش 10 ملم من كل جانب
-                    let imgHeight = (img.height * imgWidth) / img.width;
+                    let imgHeight = (canvas.height * imgWidth) / canvas.width;
                     
                     // إذا كانت الصورة أطول من الصفحة، اضبط الارتفاع
                     if (imgHeight > pageHeight - 20) {
                         imgHeight = pageHeight - 20;
-                        imgWidth = (img.width * imgHeight) / img.height;
+                        imgWidth = (canvas.width * imgHeight) / canvas.height;
                     }
                     
                     // حساب الإحداثيات لمركز الصورة
@@ -1515,7 +1642,7 @@
                     const y = (pageHeight - imgHeight) / 2;
                     
                     // إضافة الصورة إلى PDF
-                    doc.addImage(img, 'JPEG', x, y, imgWidth, imgHeight);
+                    doc.addImage(rotatedImg, 'PNG', x, y, imgWidth, imgHeight);
                     
                     // تحرير الذاكرة
                     URL.revokeObjectURL(objectUrl);
