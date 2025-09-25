@@ -629,11 +629,12 @@
             align-items: center;
             padding: 10px;
             background-color: #f0f0f0;
+            gap: 5px;
         }
         
         .rotation-circle {
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: var(--primary-color);
             color: white;
@@ -651,7 +652,7 @@
         }
         
         .rotation-circle i {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
         }
         
         .rotation-value {
@@ -696,6 +697,32 @@
         
         .toast.show {
             opacity: 1;
+        }
+        
+        .rotate-all-container {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .rotate-all-btn {
+            padding: 8px 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .rotate-all-btn:hover {
+            background: var(--secondary-color);
         }
         
         @media (max-width: 768px) {
@@ -922,6 +949,15 @@
                     <button class="clear-all-btn" id="clearAllImagesBtn">إزالة الكل</button>
                 </h3>
                 <div class="selected-files-grid" id="selectedImagesGrid"></div>
+                
+                <div class="rotate-all-container">
+                    <button class="rotate-all-btn" id="rotateAllImagesLeft">
+                        <i class="fas fa-undo"></i> تدوير الكل يساراً
+                    </button>
+                    <button class="rotate-all-btn" id="rotateAllImagesRight">
+                        <i class="fas fa-redo"></i> تدوير الكل يميناً
+                    </button>
+                </div>
             </div>
             
             <div class="progress-container hidden" id="imageProgress">
@@ -1006,6 +1042,8 @@
         const selectedImages = document.getElementById('selectedImages');
         const selectedImagesGrid = document.getElementById('selectedImagesGrid');
         const clearAllImagesBtn = document.getElementById('clearAllImagesBtn');
+        const rotateAllImagesLeft = document.getElementById('rotateAllImagesLeft');
+        const rotateAllImagesRight = document.getElementById('rotateAllImagesRight');
         
         // عناصر التقدم
         const pdfProgress = document.getElementById('pdfProgress');
@@ -1017,6 +1055,9 @@
         let uploadedPdfFiles = [];
         let uploadedImageFiles = [];
         let imagePreviewUrls = [];
+        
+        // متغيرات التدوير
+        let pdfPageRotations = {};
         
         // تبديل التبويبات
         tabs.forEach(tab => {
@@ -1145,6 +1186,13 @@
                 // إضافة الملفات الجديدة إلى المصفوفة الحالية بدلاً من استبدالها
                 uploadedPdfFiles = [...uploadedPdfFiles, ...newFiles];
                 
+                // تهيئة تدوير الصفحات للملفات الجديدة
+                newFiles.forEach(file => {
+                    if (!pdfPageRotations[file.name]) {
+                        pdfPageRotations[file.name] = {};
+                    }
+                });
+                
                 updateSelectedPdfs();
                 updatePdfConvertButton();
             }
@@ -1250,43 +1298,32 @@
                     imageName.className = 'selected-file-name';
                     imageName.textContent = file.name;
                     
-                    // إضافة دائرة التدوير
+                    // إضافة أزرار التدوير
                     const rotationControl = document.createElement('div');
                     rotationControl.className = 'rotation-control';
                     
-                    const rotationCircle = document.createElement('div');
-                    rotationCircle.className = 'rotation-circle';
-                    rotationCircle.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                    rotationCircle.title = 'تدوير الصورة';
-                    rotationCircle.dataset.index = index;
+                    const rotateLeftBtn = document.createElement('div');
+                    rotateLeftBtn.className = 'rotation-circle';
+                    rotateLeftBtn.innerHTML = '<i class="fas fa-undo"></i>';
+                    rotateLeftBtn.title = 'تدوير لليسار';
+                    rotateLeftBtn.onclick = () => rotateImage(index, -90);
                     
-                    // إضافة قيمة التدوير
-                    const rotationValue = document.createElement('span');
-                    rotationValue.className = 'rotation-value';
-                    rotationCircle.appendChild(rotationValue);
+                    const rotateRightBtn = document.createElement('div');
+                    rotateRightBtn.className = 'rotation-circle';
+                    rotateRightBtn.innerHTML = '<i class="fas fa-redo"></i>';
+                    rotateRightBtn.title = 'تدوير لليمين';
+                    rotateRightBtn.onclick = () => rotateImage(index, 90);
                     
                     // تهيئة زاوية تدوير الصورة
                     if (!uploadedImageFiles[index].rotation) {
                         uploadedImageFiles[index].rotation = 0;
                     }
                     
-                    // إضافة حدث النقر للتدوير
-                    rotationCircle.addEventListener('click', function() {
-                        // زيادة زاوية التدوير بمقدار 90 درجة مع كل نقرة
-                        uploadedImageFiles[index].rotation = (uploadedImageFiles[index].rotation + 90) % 360;
-                        
-                        // تحديث عرض قيمة التدوير
-                        rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
-                        
-                        // تحديث عرض الصورة
-                        img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
-                    });
-                    
                     // تطبيق التدوير الحالي على الصورة
                     img.style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
-                    rotationValue.textContent = `${uploadedImageFiles[index].rotation}°`;
                     
-                    rotationControl.appendChild(rotationCircle);
+                    rotationControl.appendChild(rotateLeftBtn);
+                    rotationControl.appendChild(rotateRightBtn);
                     
                     imageItem.appendChild(img);
                     imageItem.appendChild(removeBtn);
@@ -1298,6 +1335,45 @@
                 selectedImages.classList.add('hidden');
                 imagesMessage.textContent = 'اختر طريقة رفع الصور';
             }
+        }
+        
+        // تدوير صورة مفردة
+        function rotateImage(index, degrees) {
+            // تحديث زاوية التدوير
+            if (!uploadedImageFiles[index].rotation) {
+                uploadedImageFiles[index].rotation = 0;
+            }
+            
+            uploadedImageFiles[index].rotation = (uploadedImageFiles[index].rotation + degrees) % 360;
+            if (uploadedImageFiles[index].rotation < 0) {
+                uploadedImageFiles[index].rotation += 360;
+            }
+            
+            // تحديث عرض الصورة
+            const imgElements = selectedImagesGrid.children[index].querySelectorAll('img');
+            if (imgElements.length > 0) {
+                imgElements[0].style.transform = `rotate(${uploadedImageFiles[index].rotation}deg)`;
+            }
+        }
+        
+        // تدوير كل الصور
+        function rotateAllImages(degrees) {
+            uploadedImageFiles.forEach((file, index) => {
+                if (!file.rotation) {
+                    file.rotation = 0;
+                }
+                
+                file.rotation = (file.rotation + degrees) % 360;
+                if (file.rotation < 0) {
+                    file.rotation += 360;
+                }
+                
+                // تحديث عرض الصورة
+                const imgElements = selectedImagesGrid.children[index].querySelectorAll('img');
+                if (imgElements.length > 0) {
+                    imgElements[0].style.transform = `rotate(${file.rotation}deg)`;
+                }
+            });
         }
         
         // إزالة ملف PDF مفرد
@@ -1370,6 +1446,10 @@
             }
         }
         
+        // إضافة أحداث تدوير الكل
+        rotateAllImagesLeft.addEventListener('click', () => rotateAllImages(-90));
+        rotateAllImagesRight.addEventListener('click', () => rotateAllImages(90));
+        
         // تحويل PDF إلى صور
         convertPdfToImagesBtn.addEventListener('click', async () => {
             if (!uploadedPdfFiles || uploadedPdfFiles.length === 0) {
@@ -1389,6 +1469,25 @@
                 let totalFiles = uploadedPdfFiles.length;
                 let processedFiles = 0;
                 
+                // إضافة أزرار تدوير الكل لصفحات PDF
+                const rotateAllContainer = document.createElement('div');
+                rotateAllContainer.className = 'rotate-all-container';
+                rotateAllContainer.style.marginTop = '15px';
+                rotateAllContainer.style.marginBottom = '15px';
+                
+                const rotateAllLeftBtn = document.createElement('button');
+                rotateAllLeftBtn.className = 'rotate-all-btn';
+                rotateAllLeftBtn.innerHTML = '<i class="fas fa-undo"></i> تدوير الكل يساراً';
+                rotateAllLeftBtn.onclick = () => rotateAllPdfPages(-90);
+                
+                const rotateAllRightBtn = document.createElement('button');
+                rotateAllRightBtn.className = 'rotate-all-btn';
+                rotateAllRightBtn.innerHTML = '<i class="fas fa-redo"></i> تدوير الكل يميناً';
+                rotateAllRightBtn.onclick = () => rotateAllPdfPages(90);
+                
+                rotateAllContainer.appendChild(rotateAllLeftBtn);
+                rotateAllContainer.appendChild(rotateAllRightBtn);
+                
                 // معالجة كل ملف PDF
                 for (let fileIndex = 0; fileIndex < uploadedPdfFiles.length; fileIndex++) {
                     const uploadedPdfFile = uploadedPdfFiles[fileIndex];
@@ -1398,6 +1497,11 @@
                     fileSection.className = 'file-section';
                     fileSection.innerHTML = `<h3>الملف: ${uploadedPdfFile.name}</h3>`;
                     pdfPagesContainer.appendChild(fileSection);
+                    
+                    // تهيئة تدوير الصفحات لهذا الملف
+                    if (!pdfPageRotations[uploadedPdfFile.name]) {
+                        pdfPageRotations[uploadedPdfFile.name] = {};
+                    }
                     
                     const typedarray = new Uint8Array(await uploadedPdfFile.arrayBuffer());
                     const pdf = await pdfjsLib.getDocument(typedarray).promise;
@@ -1427,19 +1531,84 @@
                         const pageContainer = document.createElement('div');
                         pageContainer.className = 'page-container';
                         
+                        // تهيئة تدوير هذه الصفحة
+                        const pageKey = `${uploadedPdfFile.name}_صفحة_${i}`;
+                        if (!pdfPageRotations[uploadedPdfFile.name][pageKey]) {
+                            pdfPageRotations[uploadedPdfFile.name][pageKey] = 0;
+                        }
+                        
+                        // إنشاء canvas جديد للتدوير
+                        const rotatedCanvas = document.createElement('canvas');
+                        const rotatedCtx = rotatedCanvas.getContext('2d');
+                        
+                        // ضبط أبعاد canvas بناءً على زاوية التدوير
+                        const rotation = pdfPageRotations[uploadedPdfFile.name][pageKey];
+                        if (rotation === 90 || rotation === 270) {
+                            rotatedCanvas.width = canvas.height;
+                            rotatedCanvas.height = canvas.width;
+                        } else {
+                            rotatedCanvas.width = canvas.width;
+                            rotatedCanvas.height = canvas.height;
+                        }
+                        
+                        // مسح canvas
+                        rotatedCtx.clearRect(0, 0, rotatedCanvas.width, rotatedCanvas.height);
+                        
+                        // حفظ حالة canvas
+                        rotatedCtx.save();
+                        
+                        // نقل مركز التدوير إلى منتصف canvas
+                        rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+                        
+                        // تطبيق التدوير
+                        rotatedCtx.rotate((rotation * Math.PI) / 180);
+                        
+                        // رسم الصورة الأصلية مع مراعاة التدوير
+                        rotatedCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                        
+                        // استعادة حالة canvas
+                        rotatedCtx.restore();
+                        
                         const canvasWrapper = document.createElement('div');
                         canvasWrapper.style.padding = '10px';
-                        canvasWrapper.appendChild(canvas);
+                        canvasWrapper.appendChild(rotatedCanvas);
                         pageContainer.appendChild(canvasWrapper);
+                        
+                        // إضافة أزرار التدوير لهذه الصفحة
+                        const pageRotationControl = document.createElement('div');
+                        pageRotationControl.className = 'rotation-control';
+                        pageRotationControl.style.marginTop = '8px';
+                        
+                        const pageRotateLeftBtn = document.createElement('div');
+                        pageRotateLeftBtn.className = 'rotation-circle';
+                        pageRotateLeftBtn.innerHTML = '<i class="fas fa-undo"></i>';
+                        pageRotateLeftBtn.title = 'تدوير لليسار';
+                        pageRotateLeftBtn.onclick = () => rotatePdfPage(uploadedPdfFile.name, i, -90);
+                        
+                        const pageRotateRightBtn = document.createElement('div');
+                        pageRotateRightBtn.className = 'rotation-circle';
+                        pageRotateRightBtn.innerHTML = '<i class="fas fa-redo"></i>';
+                        pageRotateRightBtn.title = 'تدوير لليمين';
+                        pageRotateRightBtn.onclick = () => rotatePdfPage(uploadedPdfFile.name, i, 90);
+                        
+                        // عرض زاوية التدوير
+                        const rotationValue = document.createElement('span');
+                        rotationValue.className = 'rotation-value';
+                        rotationValue.textContent = `${rotation}°`;
+                        pageRotateLeftBtn.appendChild(rotationValue);
+                        
+                        pageRotationControl.appendChild(pageRotateLeftBtn);
+                        pageRotationControl.appendChild(pageRotateRightBtn);
                         
                         const format = imageFormatSelect.value;
                         
                         const downloadLink = document.createElement('a');
-                        downloadLink.href = canvas.toDataURL(`image/${format}`);
+                        downloadLink.href = rotatedCanvas.toDataURL(`image/${format}`);
                         downloadLink.download = `${uploadedPdfFile.name}_صفحة_${i}.${format}`;
                         downloadLink.className = 'download-link';
                         downloadLink.innerHTML = `<i class="fas fa-download"></i> تحميل الصفحة ${i}`;
                         
+                        pageContainer.appendChild(pageRotationControl);
                         pageContainer.appendChild(downloadLink);
                         pagesContainer.appendChild(pageContainer);
                         
@@ -1453,6 +1622,9 @@
                     
                     processedFiles++;
                 }
+                
+                // إضافة أزرار تدوير الكل بعد معالجة جميع الملفات
+                pdfPagesContainer.appendChild(rotateAllContainer);
                 
                 resultsSection.classList.remove('hidden');
                 pdfProgress.classList.add('hidden');
@@ -1469,6 +1641,58 @@
                 convertPdfToImagesBtn.innerHTML = '<i class="fas fa-sync-alt"></i> تحويل PDF إلى صور';
             }
         });
+        
+        // تدوير صفحة PDF مفردة
+        function rotatePdfPage(fileName, pageNumber, degrees) {
+            const pageKey = `${fileName}_صفحة_${pageNumber}`;
+            if (!pdfPageRotations[fileName][pageKey]) {
+                pdfPageRotations[fileName][pageKey] = 0;
+            }
+            
+            pdfPageRotations[fileName][pageKey] = (pdfPageRotations[fileName][pageKey] + degrees) % 360;
+            if (pdfPageRotations[fileName][pageKey] < 0) {
+                pdfPageRotations[fileName][pageKey] += 360;
+            }
+            
+            // تحديث عرض زاوية التدوير
+            const pageContainers = document.querySelectorAll('.page-container');
+            pageContainers.forEach(container => {
+                const rotationValue = container.querySelector('.rotation-value');
+                if (rotationValue) {
+                    rotationValue.textContent = `${pdfPageRotations[fileName][pageKey]}°`;
+                }
+            });
+            
+            // إعادة تحويل الصفحة الحالية
+            convertPdfToImagesBtn.click();
+        }
+        
+        // تدوير كل صفحات PDF
+        function rotateAllPdfPages(degrees) {
+            for (const fileName in pdfPageRotations) {
+                for (const pageKey in pdfPageRotations[fileName]) {
+                    pdfPageRotations[fileName][pageKey] = (pdfPageRotations[fileName][pageKey] + degrees) % 360;
+                    if (pdfPageRotations[fileName][pageKey] < 0) {
+                        pdfPageRotations[fileName][pageKey] += 360;
+                    }
+                }
+            }
+            
+            // تحديث عرض زوايا التدوير
+            const rotationValues = document.querySelectorAll('.rotation-value');
+            rotationValues.forEach(element => {
+                const pageContainer = element.closest('.page-container');
+                const pageSection = pageContainer.closest('.file-section');
+                const fileName = pageSection.querySelector('h3').textContent.replace('الملف: ', '');
+                const pageNumber = pageContainer.querySelector('.download-link').textContent.match(/صفحة (\d+)/)[1];
+                const pageKey = `${fileName}_صفحة_${pageNumber}`;
+                
+                element.textContent = `${pdfPageRotations[fileName][pageKey]}°`;
+            });
+            
+            // إعادة تحويل الصفحة الحالية
+            convertPdfToImagesBtn.click();
+        }
         
         // تحويل الصور إلى PDF
         convertImagesToPdfBtn.addEventListener('click', async () => {
@@ -1505,13 +1729,54 @@
                 // إنشاء معاينة لكل صورة
                 for (let i = 0; i < sortedFiles.length; i++) {
                     const file = sortedFiles[i];
+                    const rotation = file.rotation || 0; // استخدام زاوية التدوير المحددة للصورة
                     
                     const imageContainer = document.createElement('div');
                     imageContainer.className = 'image-container';
                     
-                    const imgPreview = document.createElement('img');
+                    // إنشاء canvas لتدوير الصورة للمعاينة
+                    const previewCanvas = document.createElement('canvas');
+                    const previewCtx = previewCanvas.getContext('2d');
+                    
+                    const img = new Image();
                     const objectUrl = URL.createObjectURL(file);
-                    imgPreview.src = objectUrl;
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = objectUrl;
+                    });
+                    
+                    // ضبط أبعاد canvas بناءً على زاوية التدوير
+                    if (rotation === 90 || rotation === 270) {
+                        previewCanvas.width = img.height;
+                        previewCanvas.height = img.width;
+                    } else {
+                        previewCanvas.width = img.width;
+                        previewCanvas.height = img.height;
+                    }
+                    
+                    // مسح canvas
+                    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                    
+                    // حفظ حالة canvas
+                    previewCtx.save();
+                    
+                    // نقل مركز التدوير إلى منتصف canvas
+                    previewCtx.translate(previewCanvas.width / 2, previewCanvas.height / 2);
+                    
+                    // تطبيق التدوير
+                    previewCtx.rotate((rotation * Math.PI) / 180);
+                    
+                    // رسم الصورة مع مراعاة التدوير
+                    previewCtx.drawImage(img, -img.width / 2, -img.height / 2);
+                    
+                    // استعادة حالة canvas
+                    previewCtx.restore();
+                    
+                    // إنشاء عنصر img للمعاينة باستخدام canvas
+                    const imgPreview = document.createElement('img');
+                    imgPreview.src = previewCanvas.toDataURL('image/png');
                     imgPreview.alt = file.name;
                     
                     const imageName = document.createElement('div');
@@ -1521,7 +1786,7 @@
                     // عرض زاوية تدوير الصورة
                     const imageRotation = document.createElement('div');
                     imageRotation.className = 'image-rotation';
-                    imageRotation.textContent = `التدوير: ${file.rotation || 0}°`;
+                    imageRotation.textContent = `التدوير: ${rotation}°`;
                     
                     imageContainer.appendChild(imgPreview);
                     imageContainer.appendChild(imageName);
