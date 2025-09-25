@@ -725,6 +725,24 @@
             background: var(--secondary-color);
         }
         
+        /* إضافة أرقام للصور المصغرة */
+        .image-number {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
         @media (max-width: 768px) {
             header h1 {
                 font-size: 2.5rem;
@@ -1298,6 +1316,11 @@
                     imageName.className = 'selected-file-name';
                     imageName.textContent = file.name;
                     
+                    // إضافة رقم الصورة
+                    const imageNumber = document.createElement('div');
+                    imageNumber.className = 'image-number';
+                    imageNumber.textContent = index + 1;
+                    
                     // إضافة أزرار التدوير
                     const rotationControl = document.createElement('div');
                     rotationControl.className = 'rotation-control';
@@ -1326,6 +1349,7 @@
                     rotationControl.appendChild(rotateRightBtn);
                     
                     imageItem.appendChild(img);
+                    imageItem.appendChild(imageNumber);
                     imageItem.appendChild(removeBtn);
                     imageItem.appendChild(imageName);
                     imageItem.appendChild(rotationControl);
@@ -1723,8 +1747,8 @@
                 const imagePreviewsContainer = document.getElementById('imagePreviews');
                 imagePreviewsContainer.innerHTML = '';
                 
-                // فرز الملفات حسب الاسم
-                const sortedFiles = uploadedImageFiles.sort((a, b) => a.name.localeCompare(b.name));
+                // استخدام الصور بنفس الترتيب الذي حدده المستخدم
+                const sortedFiles = uploadedImageFiles;
                 
                 // إنشاء معاينة لكل صورة
                 for (let i = 0; i < sortedFiles.length; i++) {
@@ -1781,7 +1805,7 @@
                     
                     const imageName = document.createElement('div');
                     imageName.className = 'image-name';
-                    imageName.textContent = file.name;
+                    imageName.textContent = `${i + 1}. ${file.name}`;
                     
                     // عرض زاوية تدوير الصورة
                     const imageRotation = document.createElement('div');
