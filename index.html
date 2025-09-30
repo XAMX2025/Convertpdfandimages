@@ -19,6 +19,11 @@
             --border-radius: 12px;
             --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --header-text: #333;
+            --logo-filter: brightness(1);
+            --logo-container-bg: #ffffff; /* لون خلفية حاوية الشعار في الوضع العادي */
+            --logo-container-dark-bg: #2a2a2a; /* لون خلفية حاوية الشعار في الوضع الليلي */
         }
         
         * {
@@ -40,47 +45,84 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 25px 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            transition: background 0.3s ease;
-        }
-        
-        .logo-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
             position: relative;
         }
         
-        .logo {
-            height: 450px;
-            width: auto;
-            max-width: 100%;
-            object-fit: contain;
+        /* هيدر معدل مع الصورة في الأعلى */
+        .header-container {
+            position: relative;
+            margin-bottom: 30px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            text-align: center;
+            background-color: var(--logo-container-bg); /* استخدام متغير للون الخلفية */
         }
         
-        header h1 {
-            color: var(--primary-color);
+        .header-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(240, 240, 240, 0.7) 100%);
+            z-index: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 2;
+            padding: 30px 20px;
+            color: #333;
+        }
+        
+        /* شعار دائري في الأعلى فوق النص */
+        .header-logo {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: var(--logo-container-bg); /* استخدام متغير للون الخلفية */
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; /* إضافة انتقال للون الخلفية */
+        }
+        
+        .header-logo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: var(--logo-filter);
+            transition: transform 0.5s ease, filter 0.3s ease; /* إضافة انتقال للفلتر */
+        }
+        
+        .header-logo:hover img {
+            transform: scale(1.1);
+        }
+        
+        .header-content h1 {
             font-size: 3.5rem;
             margin-bottom: 15px;
+            color: #333;
+            text-shadow: none;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 20px;
         }
         
-        header p {
-            color: #666;
+        .header-content p {
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
+            color: #555;
         }
         
         .theme-toggle {
@@ -100,6 +142,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 3;
         }
         
         .theme-toggle:hover {
@@ -758,7 +801,12 @@
         }
         
         @media (max-width: 768px) {
-            header h1 {
+            .header-logo {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .header-content h1 {
                 font-size: 2.5rem;
             }
             
@@ -805,10 +853,6 @@
                 height: 80px;
                 font-size: 2rem;
             }
-            
-            .logo {
-                height: 300px;
-            }
         }
         
         /* وضع الظلام */
@@ -819,7 +863,6 @@
         
         body.dark-mode .converter-box,
         body.dark-mode .tabs,
-        body.dark-mode header,
         body.dark-mode .options,
         body.dark-mode .results,
         body.dark-mode .selected-files,
@@ -900,21 +943,55 @@
         body.dark-mode .selected-file-item .file-icon {
             background: rgba(70, 70, 70, 0.9);
         }
+        
+        body.dark-mode .header-bg {
+            background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(26, 26, 26, 0.8) 100%);
+        }
+        
+        body.dark-mode .header-content {
+            color: #f0f0f0;
+        }
+        
+        body.dark-mode .header-content h1 {
+            color: #f0f0f0;
+        }
+        
+        body.dark-mode .header-content p {
+            color: #ccc;
+        }
+        
+        body.dark-mode .header-container {
+            background-color: var(--logo-container-dark-bg); /* تغيير لون خلفية الحاوية في الوضع الليلي */
+        }
+        
+        body.dark-mode .header-logo {
+            background-color: var(--logo-container-dark-bg); /* تغيير لون خلفية الشعار في الوضع الليلي */
+        }
+        
+        body.dark-mode .logo-filter {
+            brightness(1.5); /* زيادة سطوع الشعار في الوضع الليلي */
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <button class="theme-toggle" id="themeToggle" title="تبديل الوضع">
-            <i class="fas fa-moon"></i>
-        </button>
-        
-        <header>
-            <div class="logo-container">
-                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiBmaWxsPSIjZmZkNzAwIj48cGF0aCBkPSJNMTAwIDE1TDI1IDUwdjEwMGw3NSAzNSA3NS0zNVY1MEwxMDAgMTV6bTAgMzVsLTUwLTI1Vjc1bDUwLTI1IDUwIDI1djUwbC01MCAyNXoiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9ImFyaWFsIiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMmEyYTBhIj48Lz48L3RleHQ+PC9zdmc+" alt="XAM2025 Logo" class="logo">
+        <!-- هيدر معدل مع الصورة في الأعلى -->
+        <div class="header-container">
+            <div class="header-bg"></div>
+            <div class="header-content">
+                <button class="theme-toggle" id="themeToggle" title="تبديل الوضع">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <!-- الصورة في الأعلى فوق النص -->
+                <div class="header-logo">
+                    <img src="https://z-cdn-media.chatglm.cn/files/940d7ae3-c25f-491e-9cfa-c62bbd63c8e9_Gemini_Generated_Image_dnp4mvdnp4mvdnp4.png?auth_key=1790676344-0e0630fc15be4424ad9aafee7c92de32-0-30a83a87b924371ae2ae1f61cdec5c04" alt="XAM2025">
+                </div>
+                
+                <h1><i class="fas fa-image"></i> <i class="fas fa-exchange-alt"></i> <i class="fas fa-file-pdf"></i></h1>
+                <p>تحويل مستندات PDF إلى صور متعددة، أو دمج عدة صور إلى مستند PDF واحد بجودة عالية</p>
             </div>
-            <h1><i class="fas fa-image"></i> <i class="fas fa-exchange-alt"></i> <i class="fas fa-file-pdf"></i></h1>
-            <p>تحويل مستندات PDF إلى صور متعددة، أو دمج عدة صور إلى مستند PDF واحد بجودة عالية</p>
-        </header>
+        </div>
         
         <div class="tabs">
             <div class="tab active" data-tab="pdf-to-image">
